@@ -1,126 +1,147 @@
-# YouTube Transcript Extractor
 
-## Overview
+# YouTube Transcription Extractor
 
-This Python script is designed to extract transcripts from YouTube videos in Arabic (or any other specified language) and save them as text files. The tool is optimized for use in Google Colab and includes features for handling rate limiting, tracking processing status, and logging errors.
+[![Python Version](https://img.shields.io/badge/Python-3.6+-blue.svg)](https://www.python.org/downloads/)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
+
+A robust Python script to extract transcriptions from YouTube videos, including auto-generated captions, with comprehensive error handling and multiple output formats.
 
 ## Features
 
-- **YouTube Transcript Extraction**: Fetches transcripts using the `youtube-transcript-api` package
-- **Google Drive Integration**: Saves transcripts directly to your Google Drive
-- **Rate Limiting**: Implements intelligent rate limiting to avoid API bans
-- **Progress Tracking**: Maintains a JSON file to track completed and pending videos
-- **Error Handling**: Comprehensive error logging and retry mechanisms
-- **Parallel Processing**: Supports concurrent processing (though default is single-threaded)
-- **User-Friendly**: Simple file upload interface in Colab
+- **Extraction Capabilities**:
+  - Manual and auto-generated captions
+  - Multiple languages support
+  - Translation option for auto-generated captions
 
-## Prerequisites
+- **Output Formats**:
+  - Plain text (.txt)
+  - JSON (.json)
+  - SRT subtitles (.srt)
+  - VTT subtitles (.vtt)
 
-- Google Colab environment
-- Google Drive account (for saving transcripts)
-- Basic Python knowledge
+- **Error Handling**:
+  - Automatic retry mechanism (3 attempts by default)
+  - Detailed error logging
+  - Skip unavailable videos in batch processing
+  - Graceful handling of various failure scenarios
 
 ## Installation
 
-1. Open the script in Google Colab
-2. Run the first cell to install dependencies:
-   ```python
-   !pip install youtube-transcript-api
-   ```
+### Option 1: Clone Repository
+```bash
+git clone https://github.com/O96a/youtube-transcription-extractor.git
+cd youtube-transcription-extractor
+pip install -r requirements.txt
+```
 
-## Configuration
-
-Modify these variables at the top of the script as needed:
-
-```python
-OUTPUT_FOLDER = "/content/drive/MyDrive/yt-transcriptions"  # Where to save transcripts
-LANGUAGE = 'ar'  # Language code for transcripts (Arabic by default)
-MAX_WORKERS = 1  # Number of concurrent workers (reduce if hitting rate limits)
-BASE_DELAY = 15  # Base delay between requests in seconds
-MAX_RETRIES = 1  # Maximum number of retry attempts
+### Option 2: Install via pip
+```bash
+pip install youtube-transcription-extractor
 ```
 
 ## Usage
 
-1. **Prepare your input file**:
-   - Create a text file named `yt.txt`
-   - Add one YouTube URL per line (or just video IDs)
-   - Example:
-     ```
-     https://www.youtube.com/watch?v=VIDEO_ID_1
-     https://youtu.be/VIDEO_ID_2
-     VIDEO_ID_3
-     ```
-
-2. **Run the script**:
-   - Execute all cells in order
-   - When prompted, upload your `yt.txt` file
-
-3. **Monitor progress**:
-   - The script will display progress in the console
-   - Detailed logs are saved to:
-     - `processing_status.json` - Tracks completed/pending videos
-     - `error_log.txt` - Contains error messages
-     - `failed_videos.txt` - Lists videos that couldn't be processed
-
-4. **Access results**:
-   - Transcripts are saved as individual `.txt` files in your specified output folder
-   - Each file is named with the video ID (e.g., `VIDEO_ID_1.txt`)
-
-## File Structure
-
-After running the script, your output folder will contain:
-
-```
-/yt-transcriptions/
-│── VIDEO_ID_1.txt
-│── VIDEO_ID_2.txt
-│── ...
-│── processing_status.json
-│── error_log.txt
-│── failed_videos.txt
+### Basic Command
+```bash
+python extract_transcript.py [YOUTUBE_URL] [OPTIONS]
 ```
 
-## Error Handling
+### Command Options
 
-The script handles several types of errors gracefully:
+| Option          | Description                          | Default       |
+|-----------------|--------------------------------------|---------------|
+| `-o`, `--output` | Output file path                     | transcript.txt|
+| `-f`, `--format` | Output format (txt, json, srt, vtt) | txt          |
+| `-l`, `--language` | Language code (e.g., ar, en, fr)    | ar           |
+| `--translate`    | Translate to English                 | False        |
+| `--retries`      | Number of retry attempts             | 3            |
+| `--skip-failed`  | Skip failed videos in batch mode     | False        |
+| `--verbose`      | Show detailed error messages         | False        |
 
-- **Rate limiting (HTTP 429)**: Automatically waits and retries
-- **Transcripts disabled**: Logs the error and skips the video
-- **Video unavailable**: Logs the error and skips the video
-- **Invalid URLs**: Logs the error and skips
+### Handling Failed Videos
 
-## Performance Notes
+The script includes multiple mechanisms to handle failures:
 
-- The default configuration uses a single worker (`MAX_WORKERS = 1`) to avoid rate limiting
-- Base delay between requests is set to 15 seconds (`BASE_DELAY = 15`)
-- You may adjust these values based on your needs and YouTube's response
+1. **Automatic Retry System**:
+   - 3 retry attempts by default (configurable with `--retries`)
+   - Exponential backoff between attempts
 
-## Limitations
+2. **Error Logging**:
+   - Detailed logs in `transcription_errors.log`
+   - Failed video IDs saved in `failed_videos.txt`
 
-- Not all YouTube videos have transcripts available
-- Some transcripts may be auto-generated and less accurate
-- The script may be subject to YouTube's API rate limits
+3. **Batch Processing**:
+   - Use `--skip-failed` to continue processing other videos
+   - Progress tracking with success/failure counts
 
-## Troubleshooting
+4. **Common Failure Cases Handled**:
+   - Videos with disabled captions
+   - Age-restricted content
+   - Private/deleted videos
+   - Network timeouts
+   - Invalid language requests
+   - Rate limiting from YouTube
 
-1. **Transcripts not found**:
-   - Verify the video has transcripts available
-   - Check the language setting matches the video's transcript language
+### Examples
 
-2. **Rate limiting errors**:
-   - Increase `BASE_DELAY`
-   - Reduce `MAX_WORKERS` to 1
-   - Wait and try again later
+1. Basic extraction:
+```bash
+python extract_transcript.py https://youtu.be/example
+```
 
-3. **Google Drive access issues**:
-   - Ensure you've mounted Google Drive correctly
-   - Check the output folder path exists
+2. Extract Arabic captions as JSON:
+```bash
+python extract_transcript.py https://youtu.be/example -l ar -f json
+```
+
+3. Batch processing with error handling:
+```bash
+python batch_process.py video_list.txt --skip-failed --retries 5
+```
+
+4. Verbose error output:
+```bash
+python extract_transcript.py https://youtu.be/example --verbose
+```
+
+## Dependencies
+
+- Python 3.6+
+- [pytube](https://pytube.io) - YouTube content download
+- requests - HTTP requests
+- webvtt-py - WebVTT format support
+
+Install all dependencies:
+```bash
+pip install pytube requests webvtt-py
+```
+
+## Development
+
+To set up a development environment:
+```bash
+git clone https://github.com/O96a/youtube-transcription-extractor.git
+cd youtube-transcription-extractor
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+pip install -e .[dev]
+```
+
+Run tests:
+```bash
+pytest
+```
+
+## Contributing
+
+Contributions are welcome! Please:
+1. Fork the repository
+2. Create a feature branch
+3. Submit a Pull Request
+
+Report issues and feature requests in the [Issues section](https://github.com/O96a/youtube-transcription-extractor/issues).
 
 ## License
 
-This project is open-source and available for use under the MIT License.
-
-## Support
-
-For issues or feature requests, please open an issue in the GitHub repository.
+MIT License. See [LICENSE](LICENSE) for details.
+```
